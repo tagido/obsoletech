@@ -1,6 +1,28 @@
 #
-# dvd_info.rb
+#   dvd_vr_extract_files.rb 
+#   =======================
+#   - Extracts info and video from unfinalized DVDs (DVD+VR or DVD-Video Recordable)
+#   - Builds an ISO with the original DVD layout plus needed features like missing menus and missing UDF file system
+#   - Previews the recovered ISO with VLC
+#   - TODO: burn the recovered ISO over the original DVD 
+#       (workaround: call dvd_vr_grow_udf_and_finalize.rb manually, 
+#        after the recovered ISO is working fine)
 #
+#   Copyright (C) 2016 Pedro Mendes da Silva 
+# 
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+# 
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 require 'ostruct'
 
@@ -380,6 +402,7 @@ end
 
 def build_dvd_video_filesystem__check_filesystem_VTS_VOB_files target_files_path
 
+	# TODO:
 	# Check if the VOB files fill the 4,7GB file system
 	# Check if the VOB files break at the 1GB boundaries ( 1069547520 bytes )
 	# Check if there is only one VTS
@@ -466,7 +489,7 @@ end
 # Trailer:
 # 00 00 01 B9 
 
-
+# TODO: automate dependencies and directories (currently hardcoded)
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
 HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
 DD_PATH="D:\\Downloads\\dd-0.6beta3\\"
@@ -476,10 +499,6 @@ VLC_PATH="\"C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe\""
 DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"
 
 DVD_PATH="E:"
-
-#DVD_PATH="\"H:\\DVDs Musicais\\Tony Carreira\\\""
-#DVD_PATH="\"H:\\DVDs Musicais\\FengShui\\\""
-#DVD_PATH="H:.\\"
 
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
 
@@ -493,8 +512,6 @@ TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.Zorro"
 
 puts "dvd_vr_extract_files.rb - Gets info from unfinalized DVDs\n"
 puts "-------------\n\n"
-
-
 
 
 REPORT_FILE="#{TARGET_PATH}\\dvr_vr_extract.log"
