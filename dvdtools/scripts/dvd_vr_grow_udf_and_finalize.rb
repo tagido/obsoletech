@@ -1,6 +1,26 @@
 #
-# dvd_vr_grow_udf_and_finalize.rb
+#   dvd_vr_grow_udf_and_finalize.rb
+#   =======================
+#   - burns a recovered ISO (or a new ISO) over an unfinalized DVD (DVD+VR or DVD-Video Recordable)
+#   - can be used either for DVD+VR recovery  (with an ISO recovered by "dvd_vr_extract_files.rb")
+#     or 
+#   - for unfinalized DVD+VR recycling with another unrelated ISO 
 #
+#   Copyright (C) 2016 Pedro Mendes da Silva 
+# 
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+# 
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 require 'ostruct'
 
@@ -161,7 +181,7 @@ end
 
 def burn_first_dvd_vr_track iso_path, dvd_path, first_track_size
 
-# "d:\Downloads\dd-0.6beta3\growisofs.exe" -use-the-force-luke=tracksize=15872 -Z e:=Beja97.iso
+# eg.: "d:\Downloads\dd-0.6beta3\growisofs.exe" -use-the-force-luke=tracksize=15872 -Z e:=Beja97.iso
 	
 	dvd_dryrun_burn_command = "\"#{GROWISO_PATH}\" -dry-run -use-the-force-luke=tracksize=#{first_track_size} -Z #{dvd_path}=\"#{iso_path}\""
 	
@@ -289,7 +309,7 @@ end
 
 end
 
-
+# TODO: automate dependencies and directories (currently hardcoded)
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
 HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
 DD_PATH="D:\\Downloads\\dd-0.6beta3\\"
@@ -344,26 +364,6 @@ if (mediainfo != nil)
 end
 
 
-# TODO: ver automaticamente se é um DVD-VR não finalizado
+# TODO: ver automaticamente se é um DVD+VR não finalizado
 # TODO: mostrar espaço livre e ocupado
 # TODO: mostrar tempo estimado de vídeo no DVD
-
-# TODO: finalizar DVD
-# 1) extrair IFOs e VOBs e LBAs 
-# 2) alterar IFOs (remover menus, corrigir setores, corrigir parâmetros do vídeo nos menus, adicionar última VOB que não entrou no IFO)
-# 3) gerar sistema de ficheiros UDF
-# 4) gerar .ISO com o novo sistema de ficheiros esmagando o ISO original
-# 5) testar o ISO
-# 6) queimar no DVD original em duas partes: primeira pista com o UDF, última "pista" com novos vídeps
-
-
-
-
-
-
-
-
-
-
-
-
