@@ -1,7 +1,7 @@
 #
 #   super8_to_mp4.rb
 #   ================
-#   Converts a Super8 telecined video file to an MP4 output format with suitable filters for Super telecine
+#   Converts a Super8 telecined video file to an MP4 output format with suitable filters for Super 8 telecine
 #
 #   Copyright (C) 2016 Pedro Mendes da Silva 
 # 
