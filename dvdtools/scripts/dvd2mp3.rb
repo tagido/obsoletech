@@ -1,6 +1,25 @@
 #
-# dvd2mp3.rb
+#   dvd2mp3.rb
+#   ===================
+#   Converts a DVD-Video backup to mp3 audio format 
+#   (multiple audio output files are created, one for each original track)
+#   Each track gets a "cover image" metadate corresponding to a video frame
 #
+#   Copyright (C) 2016 Pedro Mendes da Silva 
+# 
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+# 
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
 # Wait for the spacebar key to be pressed
@@ -50,10 +69,10 @@ def get_VOB_file_names
 end
 
 def get_full_audio_flac_from_VTS_VOBs 
-	#artist="Unknown"
-	#album= "Back to Black"
+	#artist="DJ Estaline"
+	#album= "Martelos"
 	#date=  "2006"
-	#genre= "R&B"
+	#genre= "HipHop"
 
    _file_names = get_VOB_file_names 
 	
@@ -186,47 +205,38 @@ def convert_dvd_title dvd_title_number
 end
 
 
+# TODO: automate dependencies and directories (currently hardcoded)
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
 HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
-#DVD_PATH="E:\\"
 DVD_PATH="F:\\"
 
-#DVD_PATH="\"H:\\DVDs Musicais\\Tony Carreira\\\""
-#DVD_PATH="\"H:\\DVDs Musicais\\FengShui\\\""
-#DVD_PATH="H:.\\"
-
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
-#DVD_VOB_CONCAT_LIST="#{DVD_VOB_PATH}VTS_01_0.VOB\|#{DVD_VOB_PATH}VTS_01_1.VOB\|#{DVD_VOB_PATH}VTS_01_2.VOB\|#{DVD_VOB_PATH}VTS_01_3.VOB\|#{DVD_VOB_PATH}VTS_01_4.VOB"
+
 TARGET_PATH="G:.\\"
 TARGET_FILENAME="DVD - Track "
 DVD_AUDIO_TMP_FILENAME="#{TARGET_PATH}dvd_full_audio.mpg"
 DVD_AUDIO_STREAM_INDEX="4"
 DVD_TITLE_INDEX=1
 DVD_LAST_TITLE_TO_PROCESS=1
-#Obsoleto: DVD_VTS_INDEX=2
+
 
 PAUSE=false
 
 # TODO: detectar qual a pista áudio
-# TODO: detectar múltiplos "programas" (ex: DVD Tony, KizombaBasics)
-#                     Por exemplo: ir ler cada programa individualmente: "\Program Files\Handbrake\HandBrakeCLI.exe" --scan -t 2 -i h:.
 # TODO: testar erros do HandBrakeCLI
 # TODO: mover a configuração para um ficheiro separado
-# TODO: copiar uma imagem do menu do DVD como capa
 
 
 # Set metadata
-ARTIST="Tom Cruise"
-ALBUM= "Guerra dos mundos"
-DATE=  "2015"
-GENRE= "Soundtrack"
+ARTIST="DJ Estaline"
+ALBUM= "Martelos"
+DATE=  "2006"
+GENRE= "HipHop"
 
 
 puts "dvd2mp3.rb - Converts the audio from a DVD or BD to mp3"
 puts "-------------\n\n"
 puts "Reading DVD structure ...\n\n"
-
-#get_VOB_file_names
 
 get_No_of_DVD_titles
 
