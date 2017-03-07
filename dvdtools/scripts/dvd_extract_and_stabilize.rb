@@ -1,7 +1,25 @@
 #
-# dvd_extract_and_stabilize.rb
+#   dvd_extract_and_stabilize.rb
+#   ================================
+#   Deinterlaces and stabilizes video from a DVD files
+#   Extracts video from unfinalized DVD-VR or regular DVD-Video
 #
-#
+#   Copyright (C) 2016 Pedro Mendes da Silva 
+# 
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+# 
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
 require 'ostruct'
 
 origin = OpenStruct.new
@@ -97,9 +115,6 @@ def extract_chapter_jpg_thumbnail start_time, file_index, dvd_title_number, trac
 end
 
 def extract_jpg_thumbnails tmp_vob_filename
-#ffmpeg -i test.mp4 -ss 00:01:14.35 -vframes 1 out2.png
-
-   #system "del #{TARGET_PATH}*.png"
 
    system "mkdir #{tmp_vob_filename}.images"
    
@@ -119,32 +134,27 @@ end
 
 def convert_chapter start_time,end_time,file_index, tmp_vob_filename
 	date=  "2006"
-	genre= "R&B"
-	album= "EUA92"
+	genre= "HipHop"
+	album= "Martelos"
 
-   #start_time = start_time - 0.25
-   #end_time = end_time + 0.25
    
    metadata = "-metadata title=\"Track #{file_index}\" -metadata artist=\"Pedro\" -metadata genre=\"#{genre}\" -metadata date=\"#{date}\" -metadata album=\"#{album}\" -metadata track=\"#{file_index}\""
-   #metadata = "-metadata title=\"#{track_name}\" -metadata track=\"#{file_index}\""
    
    #conv_command = "\"#{FFMPEG_PATH}ffmpeg.exe\"  -i \"#{TARGET_FILENAME}\" -ss #{start_time} -to #{end_time} #{codec_options}  #{metadata} \"#{TARGET_FILENAME}\".split.#{file_index}.#{TARGET_FORMAT}"
    puts "conv #{start_time} .. #{end_time} \n"
 
-if file_index > 1
    #Deinterlace to 50 fps
    system "\"#{FFMPEG_PATH}ffmpeg\" #{FFMPEG_HDACCEL} -i \"#{tmp_vob_filename}\" -ss #{start_time} -to #{end_time} -vf \"scale=720:576,yadif=1:-1:0\" -c:v mpeg2video -b:v 6000k -target pal-dvd -af \"pan=1c|c0=c0\" #{metadata} \"#{tmp_vob_filename}.yadif.chapter#{file_index}.mpg\""
   
    #Get motion vectors
    system "\"#{FFMPEG_PATH}ffmpeg\" #{FFMPEG_HDACCEL} -i \"#{tmp_vob_filename}.yadif.chapter#{file_index}.mpg\" -vf \"vidstabdetect=stepsize=6:shakiness=8:accuracy=9:result=transform_vectors2.trf\" -f null -"
-end
 
-   #Stabilize using the motion vectors   
-   #system "\"#{FFMPEG_PATH}ffmpeg\" #{FFMPEG_HDACCEL} -i \"#{tmp_vob_filename}.yadif.chapter#{file_index}.mpg\" -vf \"vidstabtransform=input=transform_vectors2.trf:zoom=1:smoothing=30,unsharp=5:5:0.8:3:3:0.4, fps=25\" -vcodec libx264 -preset slow -tune film -crf 18 -acodec copy #{metadata} \"#{tmp_vob_filename}.yadif.deshaker.chapter#{file_index}.mp4\""
+   #Stabilize using the motion vectors      
    system "\"#{FFMPEG_PATH}ffmpeg\" #{FFMPEG_HDACCEL} -i \"#{tmp_vob_filename}.yadif.chapter#{file_index}.mpg\" -vf \"vidstabtransform=input=transform_vectors2.trf:zoom=1:smoothing=30,unsharp=5:5:0.8:3:3:0.4, fps=25\" -c:v mpeg2video -b:v 6000k -target pal-dvd -acodec copy #{metadata} \"#{tmp_vob_filename}.yadif.deshaker.chapter#{file_index}.mpg\""
 end
 
-#FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
+# TODO: automate dependencies and directories (currently hardcoded)
+
 FFMPEG_PATH="D:\\Program Files\\ffmpeg-20161210\\bin\\"
 FFMPEG_HDACCEL="-hwaccel dxva2 -threads 1"
 HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
@@ -153,17 +163,12 @@ DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"
 
 DVD_PATH="E:"
 
-#DVD_PATH="\"H:\\DVDs Musicais\\Tony Carreira\\\""
-#DVD_PATH="\"H:\\DVDs Musicais\\FengShui\\\""
-#DVD_PATH="H:.\\"
-
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
-#DVD_VOB_CONCAT_LIST="#{DVD_VOB_PATH}VTS_01_0.VOB\|#{DVD_VOB_PATH}VTS_01_1.VOB\|#{DVD_VOB_PATH}VTS_01_2.VOB\|#{DVD_VOB_PATH}VTS_01_3.VOB\|#{DVD_VOB_PATH}VTS_01_4.VOB"
 
 time = Time.now.getutc
 time2 = time.to_s.delete ': '
 
-time2 = "001B2AltoDosLombos_95_Beja_Incenso_EUA92"
+time2 = "tmpdvd"
 
 TARGET_PATH="G:\\temp\\dvd_extract_and_stabilize\\dvd.#{time2}"
 
@@ -172,39 +177,17 @@ tmp_vectors_filename = "#{TARGET_PATH}\\transform_vectors.trf"
 target_video_filename = "#{TARGET_PATH}\\dvd_full.mp4"
 
 print "mkdir \"#{TARGET_PATH}\""
-
 system "mkdir \"#{TARGET_PATH}\""
-
 
 PAUSE=false
 
 
 puts "\ndvd_extract_and_stabilize.rb - Extract video from unfinalized DVD-VR or regular DVD-Video"
-puts "-------------\n\n"
+puts "-------------------------------------------------------------------------\n\n"
 puts "Reading DVD structure ...\n\n"
 
-#get_VOB_file_names
-
-#get_No_of_DVD_titles
-
-#get_DVD_MediaInfo
-#extract_jpg_thumbnails 
-
-#extract_full_vob_file DVD_PATH, tmp_vob_filename
-#extract_jpg_thumbnails tmp_vob_filename
-
-#Deinterlace to 50 fps
-#system "\"#{FFMPEG_PATH}ffmpeg\" -i \"#{tmp_vob_filename}\" -vf \"yadif=1:-1:0\" \"#{tmp_vob_filename}.yadif.mp4\""
-
-# Partir em bocados de 10 minutos (?)
-# ... gerar os desentrelaçados já partidos em vários ficheiros
-
-#Get motion vectors
-#	system "\"#{FFMPEG_PATH}ffmpeg\" -i \"#{tmp_vob_filename}.yadif.mp4\" -vf \"vidstabdetect=stepsize=6:shakiness=8:accuracy=9:result=transform_vectors.trf\" -f null -"
-
-#Stabilize using the motion vectors
-#	system "\"#{FFMPEG_PATH}ffmpeg\" -loglevel debug -i \"#{tmp_vob_filename}.yadif.mp4\" -vf \"vidstabtransform=input=transform_vectors.trf:zoom=1:smoothing=30,unsharp=5:5:0.8:3:3:0.4\" -vcodec libx264 -preset slow -tune film -crf 18 -acodec copy \"#{target_video_filename}\""
-
+extract_full_vob_file DVD_PATH, tmp_vob_filename
+extract_jpg_thumbnails tmp_vob_filename
 
 chapter = 1
 chapter_duration = 60 * 10 
@@ -219,9 +202,3 @@ while chapter < 20 do
 	chapter = chapter + 1
 end
 
-
-
-#system "\"#{FFMPEG_PATH}ffmpeg\" -loglevel debug -i \"#{tmp_vob_filename}.yadif.mp4\" -ss 00:00:00 -to 00:02:00 -vf \"vidstabdetect=stepsize=6:shakiness=8:accuracy=9:result=transform_vectors2.trf\" -f null -"
-#system "\"#{FFMPEG_PATH}ffmpeg\" -i \"#{tmp_vob_filename}.yadif.mp4\" -ss 00:00:00 -to 00:02:00 -vf \"vidstabtransform=input=transform_vectors2.trf:zoom=1:smoothing=30,unsharp=5:5:0.8:3:3:0.4\" -vcodec libx264 -preset slow -tune film -crf 18 -acodec copy \"#{target_video_filename}\""
-
-#system "\"#{FFMPEG_PATH}ffmpeg\" -i \"#{tmp_vob_filename}\" -vf \"vidstabtransform=input=transform_vectors.trf\" \"#{target_video_filename}\""
