@@ -22,40 +22,10 @@
 #   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 
-# Wait for the spacebar key to be pressed
-def wait_for_spacebar
-   print "Press space to continue ...\n"
-   sleep 1 while $stdin.getc != " "
-end
-
-def get_No_of_DVD_titles
+require_relative "../../../zerosociety/framework/scripts/framework_utils.rb"
+require_relative "dvd_common_utils.rb"
 
 
-	result = system "\"#{HANDBRAKECLI_PATH}HandBrakeCLI.exe\" --scan -t 0 -i #{DVD_PATH} 2> dvd_chapters.all_titles.handbrake.txt"
-
-	if (result == false) 
-	  print "#### Could not read DVD structure, exiting ... \n"
-	  exit
-	end
-
-	stats_raw = `type dvd_chapters.all_titles.handbrake.txt`
-
-	print stats_raw
-
-	# ex: [20:05:39] scan: DVD has 3 title(s)
-
-	n_titles = stats_raw.scan(/DVD has ([0-9]+) title/)
-	
-	if (n_titles.length > 0)
-
-		print "[DVD]n_titles=#{n_titles[0][0]}\n"
-	else
-		
-		n_titles = stats_raw.scan(/BD has ([0-9]+) title/)
-		print "[BD]n_titles=#{n_titles[0][0]}\n"
-	end
-
-end
 
 def get_VOB_file_names
 
@@ -93,13 +63,6 @@ def get_full_audio_flac_from_VTS_VOBs
    end
 end
 
-def conv_hhmmss_to_seconds time_string
-
- seconds = "#{time_string}".split(':').map { |a| a.to_i }.inject(0) { |a, b| a * 60 + b}
-
- return seconds
- 
-end
 
 def extract_chapter_jpg_thumbnail start_time, file_index, dvd_title_number, track_filename
 #ffmpeg -i test.mp4 -ss 00:01:14.35 -vframes 1 out2.png
@@ -207,7 +170,7 @@ end
 
 # TODO: automate dependencies and directories (currently hardcoded)
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
-HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
+#HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
 DVD_PATH="F:\\"
 
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
@@ -238,7 +201,7 @@ puts "dvd2mp3.rb - Converts the audio from a DVD or BD to mp3"
 puts "-------------\n\n"
 puts "Reading DVD structure ...\n\n"
 
-get_No_of_DVD_titles
+get_No_of_DVD_titles DVD_PATH
 
 for i in DVD_TITLE_INDEX..DVD_LAST_TITLE_TO_PROCESS
    puts "Processing DVD Title #{i}"
