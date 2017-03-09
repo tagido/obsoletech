@@ -1,40 +1,31 @@
 #
-# dvd_info.rb
+#   dvd_info.rb
+#   ===================
+#   Gets media information and video thumbnails from 
+#   a finalized DVD-Video or an a unfinalized DVD+VR
 #
+#   Copyright (C) 2016 Pedro Mendes da Silva 
+# 
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+# 
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+# 
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
+
 require 'ostruct'
-
-origin = OpenStruct.new
-origin.x = 0
-origin.y = 0
-
-# Wait for the spacebar key to be pressed
-def wait_for_spacebar
-   print "Press space to continue ...\n"
-   sleep 1 while $stdin.getc != " "
-end
-
-def get_No_of_DVD_titles
+require_relative "../../../zerosociety/framework/scripts/framework_utils.rb"
+require_relative "dvd_common_utils.rb"
 
 
-result = system "\"#{HANDBRAKECLI_PATH}HandBrakeCLI.exe\" --scan -t 0 -i #{DVD_PATH} 2> dvd_chapters.all_titles.handbrake.txt"
-
-if (result == false) 
-  print "#### Could not read DVD structure, exiting ... \n"
-  exit
-end
-
-stats_raw = `type dvd_chapters.all_titles.handbrake.txt`
-
-print stats_raw
-
-# ex: [20:05:39] scan: DVD has 3 title(s)
-
-n_titles = stats_raw.scan(/DVD has ([0-9]+) title/)
-
-print "n_titles=#{n_titles[0][0]}\n"
-
-end
 
 def get_DVD_MediaInfo
 
@@ -44,7 +35,7 @@ def get_DVD_MediaInfo
 
 	if (result == false) 
 		print "#### Could not read DVD structure, exiting ... \n"
-	#	exit
+		exit
 	end	
 
 	stats_raw = `type #{TARGET_PATH}\\dvd_info.media_info.txt`
@@ -65,25 +56,6 @@ def get_DVD_MediaInfo
  
 end
 
-def get_VOB_file_names
-
-   file_names = `cmd.exe /c dir /b /s #{DVD_PATH}VTS_0#{DVD_VTS_INDEX}_*.VOB` 
-
-   concat_filenames = file_names.gsub(/\n/, "|").chomp('|')
-
-   puts "VOB files: #{concat_filenames}\n"
-   
-   return concat_filenames
-end
-
-
-def conv_hhmmss_to_seconds time_string
-
- seconds = "#{time_string}".split(':').map { |a| a.to_i }.inject(0) { |a, b| a * 60 + b}
-
- return seconds
- 
-end
 
 def extract_chapter_jpg_thumbnail start_time, file_index, dvd_title_number, track_filename
 #ffmpeg -i test.mp4 -ss 00:01:14.35 -vframes 1 out2.png
@@ -122,18 +94,13 @@ end
 
 
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
-HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
+#HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
 DD_PATH="D:\\Downloads\\dd-0.6beta3\\"
 DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"
 DVD_DRIVE="E:"
 DVD_PATH="#{DVD_DRIVE}\\"
 
-#DVD_PATH="\"H:\\DVDs Musicais\\Tony Carreira\\\""
-#DVD_PATH="\"H:\\DVDs Musicais\\FengShui\\\""
-#DVD_PATH="H:.\\"
-
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
-#DVD_VOB_CONCAT_LIST="#{DVD_VOB_PATH}VTS_01_0.VOB\|#{DVD_VOB_PATH}VTS_01_1.VOB\|#{DVD_VOB_PATH}VTS_01_2.VOB\|#{DVD_VOB_PATH}VTS_01_3.VOB\|#{DVD_VOB_PATH}VTS_01_4.VOB"
 
 time = Time.now.getutc
 time2 = time.to_s.delete ': '
@@ -159,14 +126,6 @@ puts "dvd_info.rb - Gets info from unfinalized DVDs"
 puts "-------------\n\n"
 puts "Reading DVD structure ...\n\n"
 
-#get_VOB_file_names
-
-#get_No_of_DVD_titles
-
-#for i in DVD_TITLE_INDEX..DVD_LAST_TITLE_TO_PROCESS
-#   puts "Processing DVD Title #{i}"
-#   convert_dvd_title i
-#end
 
 get_DVD_MediaInfo
 extract_jpg_thumbnails 

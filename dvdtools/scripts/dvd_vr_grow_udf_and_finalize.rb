@@ -23,16 +23,10 @@
 #   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 require 'ostruct'
+require_relative "../../../zerosociety/framework/scripts/framework_utils.rb"
+require_relative "dvd_common_utils.rb"
 
-origin = OpenStruct.new
-origin.x = 0
-origin.y = 0
 
-# Wait for the spacebar key to be pressed
-def wait_for_spacebar
-   print "Press space to continue ... (or Ctrl-C to abort) \n"
-   sleep 1 while $stdin.getc != " "
-end
 
 DVD_VR_FIRST_TRACK_SIZE = 15872 # 2KB blocks
 
@@ -45,11 +39,11 @@ DVD_VIDEO_R_FIRST_TRACK_SIZE = 12272 # 2KB blocks
 #
 # c/ Verbatims antigos parece não funcionar
 
-def get_DVD_MediaInfo
+def get_DVD_MediaInfo_Full
 
 	result = system "\"#{DVD_MEDIA_INFO_PATH}dvd+rw-mediainfo.exe\" \\\\.\\e: > #{TARGET_PATH}\\dvd_info.media_info.txt"
 
-	if (false and result == false) 
+	if ( result == false) 
 		print "#### Could not read DVD structure, exiting ... \n"
 		exit
 	end	
@@ -120,14 +114,6 @@ def get_DVD_MediaInfo
  
 end
 
-
-def conv_hhmmss_to_seconds time_string
-
- seconds = "#{time_string}".split(':').map { |a| a.to_i }.inject(0) { |a, b| a * 60 + b}
-
- return seconds
- 
-end
 
 
 def extract_raw_data_from_track2
@@ -204,7 +190,7 @@ def burn_first_dvd_vr_track iso_path, dvd_path, first_track_size
 	wait_for_spacebar
 
 	puts "(?)== Checking DVD track status ...\n"
-	get_DVD_MediaInfo
+	get_DVD_MediaInfo_Full
 	
 end
 
@@ -235,7 +221,7 @@ def burn_second_dvd_vr_track cut_iso_path, second_track_next_write_address, dvd_
 	wait_for_spacebar
 	
 	puts "(?)== Checking DVD track status ...\n"
-	mediainfo = get_DVD_MediaInfo
+	mediainfo = get_DVD_MediaInfo_Full
 	
 	
 	next_write_address = mediainfo.next_write_address[0][1]
@@ -259,7 +245,7 @@ def burn_second_dvd_vr_track cut_iso_path, second_track_next_write_address, dvd_
 	
 	wait_for_spacebar
 	puts "(?)== Checking DVD track status ...\n"
-	mediainfo = get_DVD_MediaInfo	
+	mediainfo = get_DVD_MediaInfo_Full	
 	
 
 #TODO: finalizar (escrever até ao fim da pista) e testar se ficou finalizado
@@ -339,7 +325,7 @@ puts "dvd_vr_grow_udf_and_finalize.rb - Gets info from unfinalized DVDs and merg
 puts "-------------\n\n"
 puts "Reading DVD structure ...\n\n"
 
-mediainfo = get_DVD_MediaInfo
+mediainfo = get_DVD_MediaInfo_Full
 
 if (mediainfo != nil)
 

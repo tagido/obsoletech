@@ -25,45 +25,9 @@
 #   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 require 'ostruct'
-
-origin = OpenStruct.new
-origin.x = 0
-origin.y = 0
-
-# Wait for the spacebar key to be pressed
-def wait_for_spacebar
-   print "Press space to continue ...\n"
-   sleep 1 while $stdin.getc != " "
-end
-
-
-def dvd_report_create_log_file
-   File.open(REPORT_FILE, 'w') { |file| file.write("#############################################\n") }
-end
-
-
-def dvd_report_print string
-   File.open(REPORT_FILE, 'a') { |file| file.write(string) }
-   print string
-end
-
-def dvd_report_print_section_break
-    vmhost_report_print "\n---X---X---X---X---X---X---X---X---X---\n\n"
-end
-
-def dvd_report_system_return_output command
-   system "#{command} > #{TMP_STDOUT_FILE} 2> #{TMP_STDERR_FILE}"
-   
-   output1 = `copy #{TMP_STDOUT_FILE}+#{TMP_STDERR_FILE} #{TMP_STDERR_AND_STDOUT_FILE}` 
-   
-   output = `type #{TMP_STDERR_AND_STDOUT_FILE}`
-   
-   #system "cat #{TMP_STDOUT_FILE} #{TMP_STDERR_FILE} >> #{REPORT_FILE}"
-   
-   dvd_report_print "#{output}"
-   
-   return output
-end
+require_relative "../../../zerosociety/framework/scripts/framework_utils.rb"
+require_relative "dvd_common_utils.rb"
+require_relative "dvd_report_common.rb"
 
 
 DVD_VR_FIRST_TRACK_SIZE = 15872 # 2KB blocks
@@ -491,7 +455,7 @@ end
 
 # TODO: automate dependencies and directories (currently hardcoded)
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
-HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
+#HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
 DD_PATH="D:\\Downloads\\dd-0.6beta3\\"
 SEVENZIP_PATH="\"c:\\Program Files\\7-Zip\\7z.exe\""
 MKISOFS_PATH="\"D:\\Downloads\\dd-0.6beta3\\mkisofs.exe\""
@@ -509,16 +473,12 @@ time2 = time.to_s.delete ': '
 #TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.#{time2}"
 
 TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.Zorro"
+REPORT_FILE="#{TARGET_PATH}\\dvr_vr_extract.log"
 
 puts "dvd_vr_extract_files.rb - Gets info from unfinalized DVDs\n"
 puts "-------------\n\n"
 
-
-REPORT_FILE="#{TARGET_PATH}\\dvr_vr_extract.log"
-TMP_STDOUT_FILE = "#{REPORT_FILE}.tmp.stdout.log"
-TMP_STDERR_FILE = "#{REPORT_FILE}.tmp.stderr.log"
-TMP_STDERR_AND_STDOUT_FILE = "#{REPORT_FILE}.tmp.stderr_stdout.log"
-
+dvd_report_init REPORT_FILE
 
 RECOVERED_FILES_PATH="#{TARGET_PATH}\\DVD_FILES"
 RECOVERED_RAW_FILE="#{RECOVERED_FILES_PATH}\\dvd_vr.recovered.raw"
