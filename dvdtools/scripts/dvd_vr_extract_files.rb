@@ -457,7 +457,7 @@ end
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
 #HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
 DD_PATH="D:\\Downloads\\dd-0.6beta3\\"
-SEVENZIP_PATH="\"c:\\Program Files\\7-Zip\\7z.exe\""
+#SEVENZIP_PATH="\"c:\\Program Files\\7-Zip\\7z.exe\""
 MKISOFS_PATH="\"D:\\Downloads\\dd-0.6beta3\\mkisofs.exe\""
 VLC_PATH="\"C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe\""
 DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"

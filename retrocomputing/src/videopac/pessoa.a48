@@ -1,0 +1,258 @@
+; Poems by Fernando Pessoa demo for the Videopac G7000
+;
+; Version 0.05
+;   first release, still alpha, based on "hello.a48" example 
+;
+; History:
+; Version 1.2
+;   Removed unnecessary call vdcenable at beginning.
+;
+; Copyright (C) 2017 Pedro Mendes da Silva
+
+; This program is free software; you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation; either version 2 of the License, or
+; (at your option) any later version.
+;
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this program; if not, write to the Free Software
+; Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+; You can always get the latest version at http://soeren.informationstheater.de
+
+	cpu	8048
+
+	org	400h
+	
+	include	"g7000.h"
+	include	"charset.h"
+	
+	codepage videopac
+
+	jmp	selectgame	; RESET
+	jmp	irq		; interrupt
+	jmp	timer		; timer
+	jmp	vsyncirq	; VSYNC-interrupt
+	jmp	start		; after selectgame
+	jmp	soundirq	; sound-interrupt
+
+timer	retr			; we don't need timer
+
+start
+
+	call	gfxon
+
+	; set background color
+	mov	r0,#vdc_color
+	mov	a,#col_bck_green
+	movx	@r0,a
+
+textloop
+	
+	mov	r1,#pessoastr3 & 0ffh	; the string to print, must be in the same page
+    call print12_plus_16_chars_str
+	
+	;call waitforkey
+	
+	call waitsometime2
+	
+	mov	r1,#pessoastr4 & 0ffh	; the string to print, must be in the same page
+    call print12_plus_16_chars_str
+	
+	call waitsometime2
+	
+	jmp	textloop
+	
+	
+print12_plus_16_chars_str
+	
+	call	gfxoff
+		
+	mov	r0,#vdc_char0
+	mov	r3,#10h		; x-position
+	mov	r4,#10h		; y-position
+	mov	r2,#0Ch		; length
+	
+loop	mov	a,r1		; get pointer
+	movp	a,@a		; get char
+	mov	r5,a		; into the right register
+	inc	r1		; advance pointer
+	mov	r6,#col_chr_white
+	call	printchar	; print it
+	djnz	r2,loop		; do it again
+	call	gfxon		; lets see what is written
+
+	mov	r0,#vdc_quad0
+	mov	r3,#10h		; x-position
+	mov	r4,#30h		; y-position
+	;mov	r1,#pessoastr2 & 0ffh
+	call printquad
+	
+	mov	r0,#vdc_quad1
+	mov	r3,#50h		; x-position
+	mov	r4,#30h		; y-position
+	call printquad
+
+	mov	r0,#vdc_quad2
+	mov	r3,#10h		; x-position
+	mov	r4,#50h		; y-position
+	call printquad
+	
+	mov	r0,#vdc_quad3
+	mov	r3,#50h		; x-position
+	mov	r4,#50h		; y-position
+	call printquad
+	
+	mov a,#tune_keyclick
+	call playsound
+	
+	ret
+	
+stop
+	;mov	a,#tune_select2
+	;call playsound
+	jmp	stop		; Thats all
+
+
+; in:
+; r3		; x-position
+; r4		; y-position
+; r1, #pessoastr & 0ffh	
+; r0,#vdc_quad0
+printquad	
+	call	gfxoff
+	mov	r2,#04h		; length
+loop2	mov	a,r1		; get pointer
+	movp	a,@a		; get char
+	mov	r5,a		; into the right register
+	inc	r1		; advance pointer
+	mov	r6,#col_chr_yellow
+	call	printchar	; print it
+	djnz	r2,loop2		; do it again
+	call	gfxon		; lets see what is written
+	ret
+
+	
+	
+;hellostr	db	1dh, 12h, 0eh, 0eh, 17h, 0ch, 11h, 17h, 13h, 0eh, 1ah
+
+; The VDC can generate up to 12 characters coming from a fixed character set of 64 different shapes.
+; The bitmaps are 
+; 8x7 pixels big, 
+; the possible colors are the 8 bright colors
+; Quad characters work in a very similar fashion to normal characters except that they
+; are displayed in groups of 4 characters at a time. The quad characters use the memory
+; range from $40-$7F, and there are 16 bytes for each quad character. In each quad
+; character object there are 4 bytes for each of the 4 characters and they have the same
+
+;pessoastr2	db	'Q','U','A','N','T','O',' ','D','O',' ','T','E','U',' ','S','A','L'
+;pessoastr	db	'M','A','R',' ','S','A','L','G','A','D','0','.',' '
+
+; grupos de 12+16
+pessoastr3 db 'F','E','R','N','A','N','D','O',' ','P','E','S'
+           db 'S','O','A',' ','P','O','E','M','S',' ',' ',' ',' ',' ',' ',' '
+pessoastr4 db 'F','E','R','F','A','N','F','O',' ','F','E','F'
+           db 'F','O','A',' ','F','O','E','M','S',' ','M','A','R','S','A','L'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+waitsometime2
+	call	extramenable
+	mov	r0,#eram_seconds
+	mov	a,#95h		; BCD; 5 second
+
+clockloop2
+	movx	@r0,a		
+	call waitvsync
+	call	extramenable
+	mov	r0,#eram_seconds
+	movx	a,@r0
+	dec a
+	jnz	clockloop2	
+	
+	call vdcenable
+	; now play the sound
+	mov	a,#tune_select2
+	call playsound
+	ret
+	
+	
+waitsometime
+	; need to initialise quad0/1
+;	call	gfxoff
+	; set the start time = 01:00
+	
+	call	extramenable
+	mov	r0,#eram_minutes
+	mov	a,#00h		; BCD
+	movx	@r0,a		; 0 minutes
+	mov	r0,#eram_seconds
+	mov	a,#05h		; BCD
+	movx	@r0,a		; 5 second, will roll over immediatly
+	
+	; initialise the display
+;	call	vdcenable
+;	mov	r3,#020h	; x position
+;	mov	r4,#040h	; y position
+;	mov	r6,#col_chr_white
+;	call	initclock
+
+	call vdcenable
+	; activate the clock
+;	call	waitvsync	; make sure there is no roll
+				; over before we want it
+	mov	r0,#iram_clock
+	mov	a,#03ah
+	mov	@r0,a		; start clock backwards
+				; rolls over at first vsync
+				; and initialises display in
+				; first doclock
+;	call	gfxon
+
+clockloop
+;	call	waitvsync	; once per frame
+
+;	mov	r4,#040h	; y position, same as above !!
+;	mov	r6,#col_chr_white
+;	call	doclock		; update clock, if necessary
+
+	; test the time and play sound every minute
+	call	extramenable
+	mov	r0,#eram_seconds
+	movx	a,@r0
+	jnz	clockloop
+
+	call vdcenable
+	; only play sound, if count=0 and still counting
+	mov	r0,#iram_clock
+	mov	a,@r0
+	anl	a,#0ffh-clock_forward
+	jnz	clockloop
+
+	; now play the sound
+	mov	a,#tune_select2
+	call playsound
+	
+	
+	; and return
+	ret
+
