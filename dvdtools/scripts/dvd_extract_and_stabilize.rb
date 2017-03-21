@@ -2,6 +2,7 @@
 #   dvd_extract_and_stabilize.rb
 #   ================================
 #   Deinterlaces and stabilizes video from a DVD files
+#
 #   Extracts video from unfinalized DVD-VR or regular DVD-Video
 #
 #   Copyright (C) 2016 Pedro Mendes da Silva 
@@ -51,18 +52,6 @@ def get_DVD_MediaInfo
 	return stats_raw
  
 end
-
-def get_VOB_file_names
-
-   file_names = `cmd.exe /c dir /b /s #{DVD_PATH}VTS_0#{DVD_VTS_INDEX}_*.VOB` 
-
-   concat_filenames = file_names.gsub(/\n/, "|").chomp('|')
-
-   puts "VOB files: #{concat_filenames}\n"
-   
-   return concat_filenames
-end
-
 
 
 def extract_chapter_jpg_thumbnail start_time, file_index, dvd_title_number, track_filename
@@ -125,7 +114,7 @@ FFMPEG_HDACCEL="-hwaccel dxva2 -threads 1"
 DD_PATH="D:\\Downloads\\dd-0.6beta3\\"
 DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"
 
-DVD_PATH="F:"
+DVD_PATH="E:"
 
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
 
