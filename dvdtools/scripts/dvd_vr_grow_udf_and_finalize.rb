@@ -305,7 +305,8 @@ DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"
 
 DVD_PATH="e:"
 
-ISO_PATH="G:\\TEMP\\dvd_extract_and_stabilize\\dvd.Açores\\Açores.iso"
+#ISO_PATH="G:\\TEMP\\dvd_extract_and_stabilize\\RestauroHi8\\EUA92-04.iso"
+ISO_PATH="G:\\temp\\dvd_info\\dvd_vr.files.Shake\\FIXED_DVD_IMAGES\\ISO\\FixedDVD.iso"
 
 time = Time.now.getutc
 time2 = time.to_s.delete ': '

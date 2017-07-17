@@ -420,19 +420,51 @@ def build_dvd_video_filesystem__check_filesystem_iso   target_iso_path
 	wait_for_spacebar
 end
 
+def file_resize target_files_path, new_size
+	dvd_report_print "(+)== ==   Resizing file #{target_files_path} to #{new_size}\n"
 
-def build_dvd_video_filesystem extracted_files_path, resource_files_path, target_files_path, target_iso_path, dvdvr_recovered_filesystem_info
+	dvd_report_system_return_output "copy #{target_files_path} #{target_files_path}.backup"
+	dvd_report_system_return_output "del /Q #{target_files_path}"
+	dvd_report_system_return_output "fsutil file createnew #{target_files_path} #{new_size}"
+	dvd_report_system_return_output "\"#{DD_PATH}dd.exe\" if=\"#{target_files_path}.backup\" of=\"#{target_files_path}\""
+	dvd_report_system_return_output "del /Q #{target_files_path}.backup"
+end
+
+def build_dvd_video_filesystem__fix_image_files target_files_path, tmp_target_files_path
+	dvd_report_print "(+)== ==   Fixing IFO #{target_files_path} and #{tmp_target_files_path}\n"
+	
+	# TMP copy
+	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VIDEO_TS.IFO\" \"#{tmp_target_files_path}\\VIDEO_TS.IFO\""
+	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VIDEO_TS.BUP\" \"#{tmp_target_files_path}\\VIDEO_TS.BUP\""
+	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VIDEO_TS.VOB\" \"#{tmp_target_files_path}\\VIDEO_TS.VOB\""
+	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VTS_01_0.IFO\" \"#{tmp_target_files_path}\\VTS_01_0.IFO\""
+	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VTS_01_0.BUP\" \"#{tmp_target_files_path}\\VTS_01_0.BUP\""
+	
+	
+	# Fix VTS_01
+	dvd_report_system_return_output "\"#{REWRITE_IFO_PATH}\" \"#{tmp_target_files_path}\"  \"#{target_files_path}\" 1 2> #{TARGET_PATH}\\dvd.rewrite_ifo.vts.log"
+	
+	# Fix VIDEO_TS
+	dvd_report_system_return_output "\"#{REWRITE_IFO_PATH}\" \"#{tmp_target_files_path}\"  \"#{target_files_path}\" 0 2> #{TARGET_PATH}\\dvd.rewrite_ifo.video_ts.log"
+	
+	# Resizing
+	file_resize "#{target_files_path}\\VIDEO_TS\\VTS_01_0.IFO", 1196032-15*2048
+	
+	wait_for_spacebar
+end
+
+def build_dvd_video_filesystem extracted_files_path, resource_files_path, target_files_path, tmp_target_files_path, target_iso_path, dvdvr_recovered_filesystem_info
 
 	dvd_report_print "(+)== Building DVD Video filesystem\n"
 	dvd_report_print "(+)== == Configuration:\n"
 	dvd_report_print "(+)== ==   Merging #{extracted_files_path} and #{resource_files_path}\n"
 	dvd_report_print "(+)== ==        to #{target_files_path} and #{target_iso_path}\n"
 
-	build_dvd_video_filesystem__copy_resource_files resource_files_path, target_files_path, dvdvr_recovered_filesystem_info
+	#build_dvd_video_filesystem__copy_resource_files resource_files_path, target_files_path, dvdvr_recovered_filesystem_info
 
-	build_dvd_video_filesystem__copy_extracted_files extracted_files_path, target_files_path, dvdvr_recovered_filesystem_info
+	#build_dvd_video_filesystem__copy_extracted_files extracted_files_path, target_files_path, dvdvr_recovered_filesystem_info
 	
-	#build_dvd_video_filesystem__fix_image_files target_files_path
+	build_dvd_video_filesystem__fix_image_files target_files_path, tmp_target_files_path
 	
 	build_dvd_video_filesystem__check_filesystem_files target_files_path
 	
@@ -462,6 +494,9 @@ MKISOFS_PATH="\"D:\\Downloads\\dd-0.6beta3\\mkisofs.exe\""
 VLC_PATH="\"C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe\""
 DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"
 
+# DLLs must be in the path (D:\msys64\mingw64\bin)
+REWRITE_IFO_PATH="D:\\Mais documentos\\Projectos\\Ruby scripts\\dvdtools\\rewrite_ifo.exe"
+
 DVD_PATH="E:"
 
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
@@ -472,7 +507,7 @@ time2 = time.to_s.delete ': '
 
 #TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.#{time2}"
 
-TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.Zorro"
+TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.Shake"
 REPORT_FILE="#{TARGET_PATH}\\dvr_vr_extract.log"
 
 puts "dvd_vr_extract_files.rb - Gets info from unfinalized DVDs\n"
@@ -502,11 +537,13 @@ system "mkdir #{RECOVERED_FILES_PATH}"
 
 FIXED_DVD_IMAGES_PATH="#{TARGET_PATH}\\FIXED_DVD_IMAGES"
 FIXED_DVD_IMAGES_FILES_PATH="#{FIXED_DVD_IMAGES_PATH}\\SOURCE"
+FIXED_DVD_IMAGES_TMP_FILES_PATH="#{FIXED_DVD_IMAGES_PATH}\\TMP_SOURCE"
 FIXED_DVD_IMAGES_ISO_PATH="#{FIXED_DVD_IMAGES_PATH}\\ISO"
 FIXED_DVD_IMAGES_ISO_FILE="#{FIXED_DVD_IMAGES_ISO_PATH}\\FixedDVD.iso"
 
 system "mkdir #{FIXED_DVD_IMAGES_PATH}"
 system "mkdir #{FIXED_DVD_IMAGES_FILES_PATH}"
+system "mkdir #{FIXED_DVD_IMAGES_TMP_FILES_PATH}"
 system "mkdir #{FIXED_DVD_IMAGES_ISO_PATH}"
 
 print "mkdir \"#{TARGET_PATH}\""
@@ -525,7 +562,7 @@ if (mediainfo.is_dvd_vr)
 	dvdvr_recovered_filesystem_info = extract_files_from_raw_data
 	#dvdvr_recovered_filesystem_info = nil
 	
-	build_dvd_video_filesystem RECOVERED_FILES_PATH, RESOURCES_PATH, FIXED_DVD_IMAGES_FILES_PATH, FIXED_DVD_IMAGES_ISO_FILE, dvdvr_recovered_filesystem_info
+	build_dvd_video_filesystem RECOVERED_FILES_PATH, RESOURCES_PATH, FIXED_DVD_IMAGES_FILES_PATH, FIXED_DVD_IMAGES_TMP_FILES_PATH, FIXED_DVD_IMAGES_ISO_FILE, dvdvr_recovered_filesystem_info
 else
 	puts "(!)== No DVD+VR found ...\n\n"
 end
