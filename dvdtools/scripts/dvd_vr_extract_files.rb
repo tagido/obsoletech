@@ -339,7 +339,16 @@ def build_dvd_video_filesystem__copy_extracted_files extracted_files_path, targe
 	
 	dvd_report_print "(+)== Copying extracted  VTS IFO data to the VOB files\n"
 	
-	last_extracted_vts_ifo_file = "VTS.#{dvdvr_recovered_filesystem_info.n_vts_ifo_found}.IFO"
+	if (dvdvr_recovered_filesystem_info.last_open_vob_found) then
+		ifo_number_to_use=dvdvr_recovered_filesystem_info.n_vts_ifo_found
+		ifo_number_to_use=ifo_number_to_use-1
+	else
+		ifo_number_to_use=dvdvr_recovered_filesystem_info.n_vts_ifo_found
+	end
+	 
+	last_extracted_vts_ifo_file = "VTS.#{ifo_number_to_use}.IFO"
+	dvdvr_recovered_filesystem_info.last_extracted_vts_ifo_file = last_extracted_vts_ifo_file
+	
 	
 	dvd_report_print "last extracted vts ifo file=#{last_extracted_vts_ifo_file}\n"
 
@@ -363,6 +372,17 @@ def build_dvd_video_filesystem__make_iso source_files_path, target_iso_path
 
 end
 
+def check_file_size filepath, expected_size
+
+	size = File.size(filepath)
+
+	if (size==expected_size) then
+		dvd_report_print "(?)== Checked file size for #{filepath} = #{expected_size} [OK]}\n"
+	else
+		dvd_report_print "(?!)== Checked file size for #{filepath} = #{expected_size} [FAILED], size is #{size}}\n"
+	end
+	
+end
 
 def build_dvd_video_filesystem__check_filesystem_VTS_VOB_files target_files_path
 
@@ -371,7 +391,17 @@ def build_dvd_video_filesystem__check_filesystem_VTS_VOB_files target_files_path
 	# Check if the VOB files break at the 1GB boundaries ( 1069547520 bytes )
 	# Check if there is only one VTS
 
-
+	check_file_size "#{target_files_path}\\VIDEO_TS.BUP", 12288
+	check_file_size "#{target_files_path}\\VIDEO_TS.IFO", 12288
+	check_file_size "#{target_files_path}\\VIDEO_TS.VOB", 31696896
+	
+	check_file_size "#{target_files_path}\\VTS_01_0.BUP", 32768
+	check_file_size "#{target_files_path}\\VTS_01_0.IFO", 1228800
+	check_file_size "#{target_files_path}\\VTS_01_1.VOB", 1069547520
+	check_file_size "#{target_files_path}\\VTS_01_2.VOB", 1069547520	
+	check_file_size "#{target_files_path}\\VTS_01_3.VOB", 1069547520
+	check_file_size "#{target_files_path}\\VTS_01_4.VOB", 1069547520
+	check_file_size "#{target_files_path}\\VTS_01_5.VOB", 356646912
 end
 
 def build_dvd_video_filesystem__check_filesystem_files target_files_path
@@ -409,13 +439,14 @@ def build_dvd_video_filesystem__check_filesystem_files target_files_path
 	
 end
 
-def build_dvd_video_filesystem__check_filesystem_iso   target_iso_path
+def build_dvd_video_filesystem__check_filesystem_iso   target_iso_path, target_files_path
 	
 	puts "(?)== Checking DVD ISO consistency ...\n"
 	
 	puts "(?)==== Playing DVD ISO with VLC ... please check if it played correctly\n"
 
-	dvd_report_system_return_output "#{VLC_PATH} dvd://#{target_iso_path}"
+	#dvd_report_system_return_output "#{VLC_PATH} dvd://#{target_iso_path}"
+	dvd_report_system_return_output "#{VLC_PATH} #{target_files_path}"
 	
 	wait_for_spacebar
 end
@@ -430,25 +461,51 @@ def file_resize target_files_path, new_size
 	dvd_report_system_return_output "del /Q #{target_files_path}.backup"
 end
 
-def build_dvd_video_filesystem__fix_image_files target_files_path, tmp_target_files_path
+def build_dvd_video_filesystem__fix_image_files target_files_path, tmp_target_files_path, extracted_files_path, dvdvr_recovered_filesystem_info
 	dvd_report_print "(+)== ==   Fixing IFO #{target_files_path} and #{tmp_target_files_path}\n"
 	
 	# TMP copy
+	last_extracted_vts_ifo_file = dvdvr_recovered_filesystem_info.last_extracted_vts_ifo_file
+	dvd_report_system_return_output "copy #{extracted_files_path}\\#{last_extracted_vts_ifo_file} \"#{tmp_target_files_path}\\VTS_01_0.IFO\""
+	dvd_report_system_return_output "copy #{extracted_files_path}\\#{last_extracted_vts_ifo_file} \"#{tmp_target_files_path}\\VTS_01_0.BUP\""
+	# fica a funcionar com a que vem do ZIP
+	
 	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VIDEO_TS.IFO\" \"#{tmp_target_files_path}\\VIDEO_TS.IFO\""
 	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VIDEO_TS.BUP\" \"#{tmp_target_files_path}\\VIDEO_TS.BUP\""
 	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VIDEO_TS.VOB\" \"#{tmp_target_files_path}\\VIDEO_TS.VOB\""
-	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VTS_01_0.IFO\" \"#{tmp_target_files_path}\\VTS_01_0.IFO\""
-	dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VTS_01_0.BUP\" \"#{tmp_target_files_path}\\VTS_01_0.BUP\""
+	#dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VTS_01_0.IFO\" \"#{tmp_target_files_path}\\VTS_01_0.IFO\""
+	#dvd_report_system_return_output "copy \"#{target_files_path}\\VIDEO_TS\\VTS_01_0.BUP\" \"#{tmp_target_files_path}\\VTS_01_0.BUP\""
 	
 	
-	# Fix VTS_01
+	#dvdvr_recovered_filesystem_info.last_open_vob_found = last_open_vob_found
+	#dvdvr_recovered_filesystem_info.last_open_vob_start_sector = last_open_vob_start_sector
+	#dvdvr_recovered_filesystem_info.last_open_vob_end_sector = last_open_vob_end_sector
+	# example: [OPEN Video Block] from LBA 97424 to 289968
+	
+	# Fix VTS_01 (ESTA A FICAR ligeiramenteCORROMPIDO, as cell positions nao ficam boas)
 	dvd_report_system_return_output "\"#{REWRITE_IFO_PATH}\" \"#{tmp_target_files_path}\"  \"#{target_files_path}\" 1 2> #{TARGET_PATH}\\dvd.rewrite_ifo.vts.log"
 	
-	# Fix VIDEO_TS
+	# parece que o ultimo ifo fica grande demais (?)
+	# TODO: atualizar last VTS sector
+	# TODO: procurar um PGC livre
+	#  atualizar number of cells, playback time, 
+	# Cell_1: last sector, VOBU last ...., entry point sexctor, playback time
+	# TODO: VTS_C_ADT
+	#   TODO: procurar um Cell livre
+	#   atualizar com info presente na VOB
+	#   percorrer as celulas restantes na VOB
+	# TODO: VTS_VOBU_ADMAP
+	#   TODO: procurar um Cell livre
+	#   atualizar com info presente na VOB
+	#   percorrer as celulas restantes na VOB
+	# atualiza PCG Cell_1..N : has cell id com info da VOB
+	
+	
+	# Fix VIDEO_TS (ESTA A FICAR CORROMPIDO!!!!!! vlc estoira)
 	dvd_report_system_return_output "\"#{REWRITE_IFO_PATH}\" \"#{tmp_target_files_path}\"  \"#{target_files_path}\" 0 2> #{TARGET_PATH}\\dvd.rewrite_ifo.video_ts.log"
 	
 	# Resizing
-	file_resize "#{target_files_path}\\VIDEO_TS\\VTS_01_0.IFO", 1196032-15*2048
+	file_resize "#{target_files_path}\\VIDEO_TS\\VTS_01_0.IFO", 1228800
 	
 	wait_for_spacebar
 end
@@ -460,11 +517,11 @@ def build_dvd_video_filesystem extracted_files_path, resource_files_path, target
 	dvd_report_print "(+)== ==   Merging #{extracted_files_path} and #{resource_files_path}\n"
 	dvd_report_print "(+)== ==        to #{target_files_path} and #{target_iso_path}\n"
 
-	#build_dvd_video_filesystem__copy_resource_files resource_files_path, target_files_path, dvdvr_recovered_filesystem_info
+	build_dvd_video_filesystem__copy_resource_files resource_files_path, target_files_path, dvdvr_recovered_filesystem_info
 
-	#build_dvd_video_filesystem__copy_extracted_files extracted_files_path, target_files_path, dvdvr_recovered_filesystem_info
+	build_dvd_video_filesystem__copy_extracted_files extracted_files_path, target_files_path, dvdvr_recovered_filesystem_info
 	
-	build_dvd_video_filesystem__fix_image_files target_files_path, tmp_target_files_path
+	build_dvd_video_filesystem__fix_image_files target_files_path, tmp_target_files_path, extracted_files_path, dvdvr_recovered_filesystem_info
 	
 	build_dvd_video_filesystem__check_filesystem_files target_files_path
 	
@@ -472,7 +529,7 @@ def build_dvd_video_filesystem extracted_files_path, resource_files_path, target
 	# ISO
 	
 	build_dvd_video_filesystem__make_iso target_files_path, target_iso_path
-	build_dvd_video_filesystem__check_filesystem_iso   target_iso_path
+	build_dvd_video_filesystem__check_filesystem_iso   target_iso_path, target_files_path
 	
 end
 
@@ -507,7 +564,10 @@ time2 = time.to_s.delete ': '
 
 #TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.#{time2}"
 
-TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.Shake"
+TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.NatGeo1"
+system "mkdir #{TARGET_PATH}"
+
+
 REPORT_FILE="#{TARGET_PATH}\\dvr_vr_extract.log"
 
 puts "dvd_vr_extract_files.rb - Gets info from unfinalized DVDs\n"
@@ -532,6 +592,7 @@ RESOURCES_GOOD_IFOS_VOBS_ZIP="#{RESOURCES_PATH}\\GoodIFOsAndVOBs\\GoodIFOsAndVOB
 RESOURCES_ISO_SORT_FILE_PATH="#{RESOURCES_PATH}\\mkiso.dvd_filesystem_sort.txt"
 
 dvd_report_print "== Resources directory: #{RESOURCES_PATH}\n"
+
 
 system "mkdir #{RECOVERED_FILES_PATH}"
 
