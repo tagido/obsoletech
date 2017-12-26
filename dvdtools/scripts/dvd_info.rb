@@ -77,14 +77,18 @@ def extract_jpg_thumbnails
 
    # TODO: determinar automaticamente início da 2ª pista
    
-   start_sector = 15888
+   #start_sector = 15888
    #start_sector = 13344
    #start_sector = 0
    #start_sector = 1808
+   start_sector = 13584
+   
+   #fps="1/60"
+   fps="1/2"
    
    dvd_stream_command = "\"#{DD_PATH}dd.exe\" bs=2048 skip=#{start_sector} if=\\\\.\\#{DVD_DRIVE}"
    
-   conv_command = dvd_stream_command + "|" + "\"#{FFMPEG_PATH}ffmpeg.exe\" -i - -vf \"yadif,fps=1/60\"  \"#{TARGET_PATH}\\img%03d.png\" 2> \"#{TARGET_PATH}\\dvd_info.ffmpeg_thumbnails.txt\""
+   conv_command = dvd_stream_command + "|" + "\"#{FFMPEG_PATH}ffmpeg.exe\" -i - -vf \"yadif,fps=#{fps}\"  \"#{TARGET_PATH}\\img%03d.png\" 2> \"#{TARGET_PATH}\\dvd_info.ffmpeg_thumbnails.txt\""
 
    puts "#{conv_command}\n"
    puts "Running thumbnail extraction for DVD ...\n"
@@ -114,6 +118,7 @@ system "mkdir \"#{TARGET_PATH}\""
 
 TARGET_FILENAME="DVD - Track "
 DVD_AUDIO_TMP_FILENAME="#{TARGET_PATH}dvd_full_audio.mpg"
+DVD_RAW_FILENAME="#{TARGET_PATH}\\dvd_recovered.raw"
 DVD_AUDIO_STREAM_INDEX="4"
 DVD_TITLE_INDEX=6
 DVD_LAST_TITLE_TO_PROCESS=6
@@ -127,8 +132,15 @@ puts "-------------\n\n"
 puts "Reading DVD structure ...\n\n"
 
 
-get_DVD_MediaInfo
+dvd_info=get_DVD_MediaInfo_extended
 extract_jpg_thumbnails 
+
+if ARGV[0]=="extractraw"
+
+	dvd_report_init "#{DVD_RAW_FILENAME}.log"
+
+	extract_raw_data_from_dvd_sector_to_the_end dvd_info.track_start_address[dvd_info.n_tracks.to_i-1][1], DVD_RAW_FILENAME	, DVD_DRIVE
+end
 
 # TODO: ver automaticamente se é um DVD-VR não finalizado
 # TODO: mostrar espaço livre e ocupado

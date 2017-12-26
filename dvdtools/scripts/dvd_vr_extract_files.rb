@@ -33,69 +33,7 @@ require_relative "dvd_report_common.rb"
 DVD_VR_FIRST_TRACK_SIZE = 15872 # 2KB blocks
 
 
-def get_DVD_MediaInfo
 
-	result = system "\"#{DVD_MEDIA_INFO_PATH}dvd+rw-mediainfo.exe\" \\\\.\\e: > #{TARGET_PATH}\\dvd_info.media_info.txt"
-
-	if (result == false) 
-		print "#### Could not read DVD structure, exiting ... \n"
-		exit
-	end	
-
-	stats_raw = `type #{TARGET_PATH}\\dvd_info.media_info.txt`
-
-	print stats_raw
-
-	mediainfo = OpenStruct.new
-	
-	mediainfo.n_sessions =         stats_raw.scan(/Number of Sessions:    ([0-9]+)/)[0][0]
-	mediainfo.n_tracks =           stats_raw.scan(/Number of Tracks:      ([0-9]+)/)[0][0]
-	mediainfo.disc_status =        stats_raw.scan(/Disc status:           (.+)/)[0][0]
-	mediainfo.track_status =       stats_raw.scan(/Track State:           (.+)/)
-	mediainfo.free_blocks =        stats_raw.scan(/Free Blocks:( +)?([0-9]+)?(\*2KB)/)
-	mediainfo.next_write_address = stats_raw.scan(/Next Writable Address:( +)?([0-9]+)?(\*2KB)/)
-	mediainfo.track_size =         stats_raw.scan(/Track Size:( +)?([0-9]+)?(\*2KB)/)
-	
-	print "\n\nN_sessions = #{mediainfo.n_sessions}\n"
-	print "disc status = #{mediainfo.disc_status}\n"
-	print "No. of tracks = #{mediainfo.n_tracks}\n"
-	print "  tracks status = #{mediainfo.track_status}\n"
-	print "  next_write_address = #{mediainfo.next_write_address}\n"
-	print "  track_size = #{mediainfo.track_size}\n"
-	print "  free_blocks = #{mediainfo.free_blocks}\n"
-	print "#{mediainfo.track_size[0][1]}\n"
-	
-	print "===============================\n\n"
-	
-	print "#{mediainfo.n_sessions.to_i() == 1}\n"
-	print "#{mediainfo.n_tracks.to_i() == 2}\n"
-	
-	
-	#
-	# Check DVD signatures
-	#
-	
-	
-	# Check if it a DVD+VR
-	if ( (mediainfo.n_sessions.to_i() == 1) and (mediainfo.n_tracks.to_i() == 2) and (mediainfo.track_size[0][1].to_i() == DVD_VR_FIRST_TRACK_SIZE))
-		mediainfo.is_dvd_vr = true
-	else
-		mediainfo.is_dvd_vr = false
-	end
-	
-	# Check if it is finalized
-	if ( (mediainfo.disc_status == "appendable") )
-		mediainfo.is_finalized = false
-	else
-		mediainfo.is_finalized = true
-	end
-	
-	print "  finalized = #{mediainfo.is_finalized}\n"
-	print "  dvd+vr ?  = #{mediainfo.is_dvd_vr}\n"
-	
-	return mediainfo
- 
-end
 
 
 def conv_hhmmss_to_seconds time_string
@@ -123,7 +61,7 @@ end
 def log_start_dump_dvd_file name, extension, index
 	target_dir = "#{RECOVERED_FILES_PATH}"
 	file_name = "#{target_dir}\\#{name}.#{index}.#{extension}"
-	dvd_report_print "(+)== [Dumping] #{file_name} ...\n"
+	dvd_report_print "\n(+)== [Dumping] #{file_name} ...\n"
 end
 
 def dump_dvd_file name, extension, index, binary_contents
@@ -136,6 +74,7 @@ def dump_dvd_file name, extension, index, binary_contents
 		f.write(binary_contents)
 	end
 
+	return file_name
 end
 
 DUMP_IFO_FILES = true
@@ -159,6 +98,12 @@ def extract_files_from_raw_data
 	currently_inside_video = false
 	currently_inside_video_ifo = false
 	current_video_start_block = 0
+	inside_vts = false		
+	starting_ifo_dump = false
+	
+	inside_DVDVRMANAGER = false
+	current_DVDVRMANAGER_index =0
+	
 	
 	last_open_vob_found = false
 	last_open_vob_start_sector = 0
@@ -191,11 +136,15 @@ def extract_files_from_raw_data
 			
 			if (signatures[0][0] == "DVDVIDEO-VMG") or (signatures[0][0] == "DVDVIDEO-VTS") or (signatures[0][0] == "DVDVRMANAGER") or (signatures[0][0] == "NSR02") or (signatures[0][0] == "DVDAUTH-INFO")
 				
+				if (inside_DVDVRMANAGER)
+					current_DVDVRMANAGER_index=current_DVDVRMANAGER_index+1
+					inside_DVDVRMANAGER=false
+				end
 				
 				diff = (current_block_index - prev_found_sig_block_index) * 2
 				dvd_report_print "... diff from previous #{diff} KB\n"
 				
-				dvd_report_print "#{current_block_index}: #{current_block_index*2048}..#{(current_block_index+1)*2048}..  signatures=#{signatures}"
+				dvd_report_print "#{current_block_index}: #{current_block_index*2048}..#{(current_block_index+1)*2048}..  signatures=#{signatures}\n"
 			
 				prev_found_sig_block_index = current_block_index
 				first_vob_block_printed = false
@@ -205,8 +154,16 @@ def extract_files_from_raw_data
 				end
 				
 				if (signatures[0][0] == "DVDVIDEO-VTS")
-					inside_vts = true
-					log_start_dump_dvd_file "VTS", "IFO", current_vts_index
+					#print "\nblock #{block[12]} #{block[13]} #{block[14]} #{block[15]} #{block[12..15].unpack("L")}...\n"
+					vts_last_sector = block[12..15].unpack("N")[0]
+					print "\nblock --#{vts_last_sector}--...\n"
+					if (inside_vts)
+						current_vts_index = current_vts_index + 1
+						log_start_dump_dvd_file "VTS_#{vts_last_sector}", "IFO", current_vts_index
+					else
+						inside_vts = true
+						log_start_dump_dvd_file "VTS_#{vts_last_sector}", "IFO", current_vts_index
+					end
 				else if inside_vts
 					inside_vts = false
 					current_vts_index = current_vts_index + 1
@@ -215,11 +172,14 @@ def extract_files_from_raw_data
 				
 				if (signatures[0][0] == "DVDVIDEO-VMG")
 					if (currently_inside_video_ifo)
-						current_video_ifo_index = current_video_ifo_index + 1
+						current_video_ifo_index = current_video_ifo_index + 1						
 					else
 						currently_inside_video_ifo = true
 					end
+					
+					starting_ifo_dump = true
 					log_start_dump_dvd_file "VIDEO", "IFO", current_video_ifo_index
+					
 				else if currently_inside_video_ifo
 					currently_inside_video_ifo = false
 					current_video_ifo_index = current_video_ifo_index + 1
@@ -232,6 +192,21 @@ def extract_files_from_raw_data
 					prev_block_was_NSR = false
 				end
 				
+				if (signatures[0][0] == "DVDVRMANAGER")
+					inside_DVDVRMANAGER = true
+					current_DVDVRMANAGER_index = current_DVDVRMANAGER_index + 1
+					
+					currently_inside_video_ifo = false
+					inside_vts = false
+					log_start_dump_dvd_file "VIDEO_RM", "IFO", current_DVDVRMANAGER_index
+				end
+
+				
+				if ((signatures[0][0] == "DVDAUTH-INFO"))
+					dvd_report_print "\n... discarded signature #{signatures[0][0]} #{current_block_index-16384}\n"		  				
+					
+				end
+				
 			else # VOB/MPEG2 block
 				if ( !first_vob_block_printed and prev_block_was_NSR )
 				  dvd_report_print "... first VOB block LBA: #{current_block_index-16384}  signatures=#{signatures}"
@@ -240,6 +215,21 @@ def extract_files_from_raw_data
 				  current_video_start_block = current_block_index
 				  
 				  log_start_dump_dvd_file "VTS_01", "VOB", current_vts_vob_index
+				  
+				  #tmp
+				  skip_discarded = false
+				else
+					if (!skip_discarded and !currently_inside_video)
+						dvd_report_print "... discarded MPEG block LBA: #{current_block_index-16384}  signatures=#{signatures}\n"				  
+						skip_discarded = true
+						
+						# Reset (?)
+						inside_vts = false					
+						currently_inside_video_ifo = false
+						current_video_ifo_index = current_video_ifo_index + 1
+						current_vts_index = current_vts_index + 1
+					
+					end
 				end		
 			end
 			
@@ -257,8 +247,18 @@ def extract_files_from_raw_data
 			end
 			
 			if (currently_inside_video_ifo)
-				dump_dvd_file "VIDEO","IFO",current_video_ifo_index, block
-			end			
+				file_name = dump_dvd_file "VIDEO","IFO",current_video_ifo_index, block
+				
+				if (starting_ifo_dump)
+					dvd_report_system_return_output "\"#{DUMP_IFO_PATH}\" \"#{file_name}\""
+					starting_ifo_dump = false
+				end
+			end		
+
+			if (inside_DVDVRMANAGER)
+				dump_dvd_file "VIDEO_RM","IFO",current_DVDVRMANAGER_index, block
+			end
+						
 		end
 		
 		if DUMP_VOB_FILES
@@ -293,7 +293,7 @@ def extract_files_from_raw_data
 	dvdvr_recovered_filesystem_info.last_open_vob_start_sector = last_open_vob_start_sector
 	dvdvr_recovered_filesystem_info.last_open_vob_end_sector = last_open_vob_end_sector
 
-	dvd_report_print "#{dvdvr_recovered_filesystem_info}"
+	dvd_report_print "#{dvdvr_recovered_filesystem_info} \n"
 
 	return dvdvr_recovered_filesystem_info
 end
@@ -337,11 +337,29 @@ def build_dvd_video_filesystem__copy_extracted_files extracted_files_path, targe
 	end
 	
 	
+	# TODO
+	# copy multiple .IFO files
+	#  - look inside the last VIDEO_TS N=number of VTS, copy last detected N VTS_?.IFOs
+	#  - run rewrite_ifo for all VTS (fix crashes, look for the right VOB)
+	#  - todos os IFOs dizem que o ultimo setor gravado e' o seu ultimo setor
+	#  - outra hipotese ser'a martelar o VIDEO_TS para so' ter um VTS
+	# copy multiple .VOB files
+	#  (VOBs seem to overlap in the ISO)
+	# fix rewrite_ifo problem for bigger VIDEO_TS.IFO files with multiple IFO
+	# extract VIDEO_RM.* files for troubleshooting ("")
+	#  - info:
+	#    00573232 , >:\+VR Video Recordings\Recording 05 [TITLE SCART].MPG.VOB
+	#    01077648 , >:\+VR Video Recordings\Recording 06 [TITLE SCART].MPG.VOB
+	#    01537712 , >:\+VR Video Recordings\Recording 07 [TITLE SCART].MPG.VOB
+	# - new DVDVRMANAGER parser tool
+	
 	dvd_report_print "(+)== Copying extracted  VTS IFO data to the VOB files\n"
 	
 	if (dvdvr_recovered_filesystem_info.last_open_vob_found) then
 		ifo_number_to_use=dvdvr_recovered_filesystem_info.n_vts_ifo_found
 		ifo_number_to_use=ifo_number_to_use-1
+		#TMP
+		#ifo_number_to_use=7
 	else
 		ifo_number_to_use=dvdvr_recovered_filesystem_info.n_vts_ifo_found
 	end
@@ -372,6 +390,7 @@ def build_dvd_video_filesystem__make_iso source_files_path, target_iso_path
 
 end
 
+
 def check_file_size filepath, expected_size
 
 	size = File.size(filepath)
@@ -391,17 +410,17 @@ def build_dvd_video_filesystem__check_filesystem_VTS_VOB_files target_files_path
 	# Check if the VOB files break at the 1GB boundaries ( 1069547520 bytes )
 	# Check if there is only one VTS
 
-	check_file_size "#{target_files_path}\\VIDEO_TS.BUP", 12288
-	check_file_size "#{target_files_path}\\VIDEO_TS.IFO", 12288
-	check_file_size "#{target_files_path}\\VIDEO_TS.VOB", 31696896
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VIDEO_TS.BUP", 12288
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VIDEO_TS.IFO", 12288
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VIDEO_TS.VOB", 31696896
 	
-	check_file_size "#{target_files_path}\\VTS_01_0.BUP", 32768
-	check_file_size "#{target_files_path}\\VTS_01_0.IFO", 1228800
-	check_file_size "#{target_files_path}\\VTS_01_1.VOB", 1069547520
-	check_file_size "#{target_files_path}\\VTS_01_2.VOB", 1069547520	
-	check_file_size "#{target_files_path}\\VTS_01_3.VOB", 1069547520
-	check_file_size "#{target_files_path}\\VTS_01_4.VOB", 1069547520
-	check_file_size "#{target_files_path}\\VTS_01_5.VOB", 356646912
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VTS_01_0.BUP", 32768
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VTS_01_0.IFO", 1228800
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VTS_01_1.VOB", 1069547520
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VTS_01_2.VOB", 1069547520	
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VTS_01_3.VOB", 1069547520
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VTS_01_4.VOB", 1069547520
+	check_file_size "#{target_files_path}\\VIDEO_TS\\VTS_01_5.VOB", 356646912
 end
 
 def build_dvd_video_filesystem__check_filesystem_files target_files_path
@@ -451,6 +470,8 @@ def build_dvd_video_filesystem__check_filesystem_iso   target_iso_path, target_f
 	wait_for_spacebar
 end
 
+# TODO: fix "O utilitário FSUTIL requer privilégios administrativos."
+#
 def file_resize target_files_path, new_size
 	dvd_report_print "(+)== ==   Resizing file #{target_files_path} to #{new_size}\n"
 
@@ -499,6 +520,14 @@ def build_dvd_video_filesystem__fix_image_files target_files_path, tmp_target_fi
 	#   atualizar com info presente na VOB
 	#   percorrer as celulas restantes na VOB
 	# atualiza PCG Cell_1..N : has cell id com info da VOB
+	#
+	# fix crash rewrite_ifo while adding last open vob
+	#   silverado      populate_cells i:19772 j:95   secs 00:00:00.00
+	#        populate_cells i:19976 j:96   secs 00:00:00.00
+	#        populate_cells i:20186 j:97   secs 00:00:00.00
+	#        populate_cells i:20214 j:98   secs 00:00:00.00
+	#    populate_cells ending n cells:99
+
 	
 	
 	# Fix VIDEO_TS (ESTA A FICAR CORROMPIDO!!!!!! vlc estoira)
@@ -553,6 +582,7 @@ DVD_MEDIA_INFO_PATH="D:\\Downloads\\dd-0.6beta3\\"
 
 # DLLs must be in the path (D:\msys64\mingw64\bin)
 REWRITE_IFO_PATH="D:\\Mais documentos\\Projectos\\Ruby scripts\\dvdtools\\rewrite_ifo.exe"
+DUMP_IFO_PATH="D:\\Mais documentos\\Projectos\\Ruby scripts\\dvdtools\\dump_one_IFO.cmd"
 
 DVD_PATH="E:"
 
@@ -564,7 +594,11 @@ time2 = time.to_s.delete ': '
 
 #TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.#{time2}"
 
-TARGET_PATH="G:\\temp\\dvd_info\\dvd_vr.files.NatGeo1"
+#TARGET_PATH="G:\\temp\\dvd_vr\\dvd_vr.files.BerlimH2"
+
+TARGET_PATH="G:\\temp\\dvd_vr\\SilveradoPavaroti"
+
+
 system "mkdir #{TARGET_PATH}"
 
 
@@ -616,7 +650,7 @@ PAUSE=false
 
 dvd_report_print "(?)== Reading DVD structure ...\n\n"
 
-mediainfo = get_DVD_MediaInfo
+mediainfo = get_DVD_MediaInfo_extended
 
 if (mediainfo.is_dvd_vr)
 	#extract_raw_data_from_track2
@@ -631,6 +665,8 @@ end
 # TODO: ver automaticamente se é um DVD-VR não finalizado
 # TODO: mostrar espaço livre e ocupado
 # TODO: mostrar tempo estimado de vídeo no DVD
+
+# TODO: testar se o video original tem erros ffmpeg.exe -i SOURCE\VIDEO_TS\VTS_01_1.VOB -v debug -f null - 2> debug.raw.log
 
 # TODO: finalizar DVD
 # 1) extrair IFOs e VOBs e LBAs 
