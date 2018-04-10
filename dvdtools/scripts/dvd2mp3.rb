@@ -67,7 +67,7 @@ end
 def extract_chapter_jpg_thumbnail start_time, file_index, dvd_title_number, track_filename
 #ffmpeg -i test.mp4 -ss 00:01:14.35 -vframes 1 out2.png
 
-   jpg_start_time = "0:15"
+   jpg_start_time = "0:29"
 
    conv_command = "\"#{FFMPEG_PATH}ffmpeg.exe\" -i \"#{DVD_AUDIO_TMP_FILENAME}\" -ss #{jpg_start_time} -vframes 1 \"#{track_filename}.jpg\""
 
@@ -171,37 +171,42 @@ end
 # TODO: automate dependencies and directories (currently hardcoded)
 FFMPEG_PATH="D:\\Program Files (x86)\\FFmpeg for Audacity\\"
 #HANDBRAKECLI_PATH="D:\\Program Files\\Handbrake\\"
-DVD_PATH="F:\\"
+#DVD_PATH="H:\\"
+DVD_PATH="F:.\\"
 
 DVD_VOB_PATH="#{DVD_PATH}VIDEO_TS\\"
 
 TARGET_PATH="G:.\\"
 TARGET_FILENAME="DVD - Track "
 DVD_AUDIO_TMP_FILENAME="#{TARGET_PATH}dvd_full_audio.mpg"
-DVD_AUDIO_STREAM_INDEX="4"
-DVD_TITLE_INDEX=1
-DVD_LAST_TITLE_TO_PROCESS=1
+DVD_AUDIO_STREAM_INDEX="1"
+DVD_TITLE_INDEX=3
+DVD_LAST_TITLE_TO_PROCESS=3
 
 
-PAUSE=false
+PAUSE=true
 
 # TODO: detectar qual a pista áudio
 # TODO: testar erros do HandBrakeCLI
 # TODO: mover a configuração para um ficheiro separado
+# TODO: extrair apenas alguns capitulos
 
 
 # Set metadata
-ARTIST="DJ Estaline"
-ALBUM= "Martelos"
+ARTIST="Unknown Artist"
+ALBUM= "Unknown Album"
 DATE=  "2006"
-GENRE= "HipHop"
+GENRE= "Dummy"
 
 
 puts "dvd2mp3.rb - Converts the audio from a DVD or BD to mp3"
 puts "-------------\n\n"
 puts "Reading DVD structure ...\n\n"
 
-get_No_of_DVD_titles DVD_PATH
+n_dvd_titles = get_No_of_DVD_titles DVD_PATH
+if (PAUSE == true)
+	wait_for_spacebar
+end
 
 for i in DVD_TITLE_INDEX..DVD_LAST_TITLE_TO_PROCESS
    puts "Processing DVD Title #{i}"

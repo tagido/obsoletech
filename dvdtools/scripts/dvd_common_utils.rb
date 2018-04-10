@@ -125,6 +125,7 @@ def get_No_of_DVD_titles dvd_path
 		print "[BD]n_titles=#{n_titles[0][0]}\n"
 	end
 
+	return n_titles
 end
 
 def get_VOB_file_names
